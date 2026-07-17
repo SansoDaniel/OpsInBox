@@ -128,7 +128,7 @@ messa in produzione.
 
 ## Note varie
 
-- **Git**: repo inizializzato in `ProjectContainer/` ma **nessun commit ancora fatto**
+- **Git**: repo pubblicato su <https://github.com/SansoDaniel/OpsInBox> (branch `main`)
 - Valutazione Ollama (fatta, decisione presa): per l'estrazione documenti restare su
   API top (costo ~€0,01-0,03/email, meglio di un server GPU); Ollama utile in futuro
   per dev locale o tier enterprise "privacy". L'interfaccia `AiClient` rende il cambio
