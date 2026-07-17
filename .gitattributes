@@ -1,0 +1,15 @@
+# Normalizza i fine-riga: LF nel repo, checkout secondo la piattaforma
+* text=auto
+
+# Script POSIX: sempre LF
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Script Windows: sempre CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# Binari
+*.jar binary
+*.png binary
+*.ico binary

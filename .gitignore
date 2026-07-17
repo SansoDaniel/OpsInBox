@@ -5,6 +5,7 @@
 
 # Backend (Gradle/Kotlin)
 backend/.gradle/
+backend/.kotlin/
 backend/build/
 backend/var/
 
