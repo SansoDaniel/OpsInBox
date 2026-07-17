@@ -125,6 +125,7 @@ export type Settings = {
   notificationEmail: string | null;
   slackWebhookUrl: string | null;
   teamsWebhookUrl: string | null;
+  whatsappNumber: string | null;
 };
 
 async function requestBlob(path: string): Promise<Blob> {
@@ -147,6 +148,7 @@ export const api = {
     notificationEmail?: string;
     slackWebhookUrl?: string;
     teamsWebhookUrl?: string;
+    whatsappNumber?: string;
   }) => request<Settings>("/api/settings", { method: "POST", body: JSON.stringify(data) }),
   search: (q: string) => request<SearchResponse>(`/api/search?q=${encodeURIComponent(q)}`),
   onboard: (data: { companyName: string; vatNumber?: string; email?: string; name?: string }) =>

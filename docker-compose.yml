@@ -24,5 +24,20 @@ services:
       - "1025:1025"
       - "8025:8025"
 
+  # WhatsApp via open-wa EasyAPI (profilo opzionale, non parte di default):
+  #   docker compose --profile whatsapp up -d
+  # Prima esecuzione: docker compose logs -f openwa e scansiona il QR con
+  # WhatsApp (Dispositivi collegati). La sessione persiste nel volume.
+  openwa:
+    image: openwa/wa-automate
+    container_name: opsinbox-openwa
+    profiles: ["whatsapp"]
+    command: "-p 8002 --session-data-path /sessions --disable-spins"
+    ports:
+      - "8002:8002"
+    volumes:
+      - openwa-sessions:/sessions
+
 volumes:
   pgdata:
+  openwa-sessions:

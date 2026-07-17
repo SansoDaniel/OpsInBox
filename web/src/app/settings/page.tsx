@@ -8,6 +8,7 @@ export default function SettingsPage() {
   const [notificationEmail, setNotificationEmail] = useState("");
   const [slackWebhookUrl, setSlackWebhookUrl] = useState("");
   const [teamsWebhookUrl, setTeamsWebhookUrl] = useState("");
+  const [whatsappNumber, setWhatsappNumber] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -21,6 +22,7 @@ export default function SettingsPage() {
         setNotificationEmail(s.notificationEmail ?? "");
         setSlackWebhookUrl(s.slackWebhookUrl ?? "");
         setTeamsWebhookUrl(s.teamsWebhookUrl ?? "");
+        setWhatsappNumber(s.whatsappNumber ?? "");
         setError(false);
       })
       .catch(() => setError(true))
@@ -33,7 +35,12 @@ export default function SettingsPage() {
     setSaved(false);
     setError(false);
     try {
-      await api.updateSettings({ notificationEmail, slackWebhookUrl, teamsWebhookUrl });
+      await api.updateSettings({
+        notificationEmail,
+        slackWebhookUrl,
+        teamsWebhookUrl,
+        whatsappNumber,
+      });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch {
@@ -106,6 +113,21 @@ export default function SettingsPage() {
             placeholder="https://outlook.office.com/webhook/…"
             className={inputClass}
           />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1" htmlFor="whatsappNumber">
+            WhatsApp — numero con prefisso internazionale
+          </label>
+          <input
+            id="whatsappNumber"
+            value={whatsappNumber}
+            onChange={(e) => setWhatsappNumber(e.target.value)}
+            placeholder="393331234567"
+            className={inputClass}
+          />
+          <p className="mt-1 text-xs text-zinc-500">
+            Richiede il servizio open-wa attivo (vedi README). Solo cifre, senza +.
+          </p>
         </div>
         <p className="text-xs text-zinc-500">
           Lascia vuoto un campo per disattivare quel canale. Senza canali

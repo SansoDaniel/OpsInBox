@@ -20,6 +20,7 @@ data class SettingsDto(
     val notificationEmail: String?,
     val slackWebhookUrl: String?,
     val teamsWebhookUrl: String?,
+    val whatsappNumber: String?,
 )
 
 @Serializable
@@ -27,6 +28,7 @@ data class UpdateSettingsRequest(
     val notificationEmail: String? = null,
     val slackWebhookUrl: String? = null,
     val teamsWebhookUrl: String? = null,
+    val whatsappNumber: String? = null,
 )
 
 fun Route.settingsRoutes(config: AppConfig) {
@@ -41,6 +43,7 @@ fun Route.settingsRoutes(config: AppConfig) {
                     notificationEmail = row[Companies.notificationEmail],
                     slackWebhookUrl = row[Companies.slackWebhookUrl],
                     teamsWebhookUrl = row[Companies.teamsWebhookUrl],
+                    whatsappNumber = row[Companies.whatsappNumber],
                 )
             }
             call.respond(dto)
@@ -56,6 +59,7 @@ fun Route.settingsRoutes(config: AppConfig) {
                     it[notificationEmail] = clean(request.notificationEmail)
                     it[slackWebhookUrl] = clean(request.slackWebhookUrl)
                     it[teamsWebhookUrl] = clean(request.teamsWebhookUrl)
+                    it[whatsappNumber] = clean(request.whatsappNumber)
                 }
                 val row = Companies.selectAll().where { Companies.id eq companyId }.single()
                 SettingsDto(
@@ -63,6 +67,7 @@ fun Route.settingsRoutes(config: AppConfig) {
                     notificationEmail = row[Companies.notificationEmail],
                     slackWebhookUrl = row[Companies.slackWebhookUrl],
                     teamsWebhookUrl = row[Companies.teamsWebhookUrl],
+                    whatsappNumber = row[Companies.whatsappNumber],
                 )
             }
             call.respond(dto)

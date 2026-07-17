@@ -6,6 +6,7 @@ import com.opsinbox.db.Notifications
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsText
@@ -41,6 +42,7 @@ private data class PendingNotification(
     val notificationEmail: String?,
     val slackWebhookUrl: String?,
     val teamsWebhookUrl: String?,
+    val whatsappNumber: String?,
 )
 
 /**
@@ -73,6 +75,7 @@ class NotificationService(private val config: AppConfig) {
                 notificationEmail = companyRow[Companies.notificationEmail],
                 slackWebhookUrl = companyRow[Companies.slackWebhookUrl],
                 teamsWebhookUrl = companyRow[Companies.teamsWebhookUrl],
+                whatsappNumber = companyRow[Companies.whatsappNumber],
             )
         } ?: return
 
@@ -94,6 +97,11 @@ class NotificationService(private val config: AppConfig) {
                 val url = pending.teamsWebhookUrl
                 if (url == null) return markFailed(pending.id, "teams_webhook_url non configurato")
                 postWebhook(url, text)
+            }
+            "whatsapp" -> {
+                val number = pending.whatsappNumber
+                if (number == null) return markFailed(pending.id, "whatsapp_number non configurato")
+                sendWhatsApp(number, text)
             }
             else -> log.info("NOTIFICA [log] {}", pending.payload)
         }
@@ -165,6 +173,33 @@ class NotificationService(private val config: AppConfig) {
         }
         // jakarta.mail è bloccante: fuori dal dispatcher di default
         withContext(Dispatchers.IO) { Transport.send(message) }
+    }
+
+    /**
+     * WhatsApp via open-wa EasyAPI (https://github.com/open-wa/wa-automate-nodejs).
+     * NB: automazione non ufficiale di WhatsApp Web — adatta a MVP/demo;
+     * per la produzione passare alla WhatsApp Business Cloud API (stesso canale,
+     * basta sostituire questo sender).
+     */
+    private suspend fun sendWhatsApp(number: String, text: String) {
+        val digits = number.filter { it.isDigit() }
+        if (digits.isEmpty()) error("Numero WhatsApp non valido: '$number'")
+        val chatId = "$digits@c.us"
+        val response = http.post("${config.openWaApiUrl}/sendText") {
+            contentType(ContentType.Application.Json)
+            config.openWaApiKey?.let { header("api_key", it) }
+            setBody(buildJsonObject {
+                put("args", buildJsonObject {
+                    put("to", chatId)
+                    put("content", text)
+                })
+            }.toString())
+        }
+        val body = response.bodyAsText()
+        // open-wa può rispondere 200 con {"success":false,...} in caso di errore
+        if (!response.status.isSuccess() || body.contains("\"success\":false")) {
+            error("OpenWA ${response.status.value}: ${body.take(300)}")
+        }
     }
 
     private suspend fun postWebhook(url: String, text: String) {

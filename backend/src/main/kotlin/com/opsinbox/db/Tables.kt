@@ -17,6 +17,7 @@ object Companies : UUIDTable("companies") {
     val notificationEmail = text("notification_email").nullable()
     val slackWebhookUrl = text("slack_webhook_url").nullable()
     val teamsWebhookUrl = text("teams_webhook_url").nullable()
+    val whatsappNumber = text("whatsapp_number").nullable()
     val createdAt = timestampWithTimeZone("created_at")
 }
 

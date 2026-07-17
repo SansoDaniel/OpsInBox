@@ -25,6 +25,9 @@ data class AppConfig(
     val smtpFrom: String,
     /** URL dell'app usato nei link delle notifiche. */
     val appUrl: String,
+    // open-wa EasyAPI per le notifiche WhatsApp (non ufficiale; in produzione: Business Cloud API)
+    val openWaApiUrl: String,
+    val openWaApiKey: String?,
 ) {
     val authEnabled: Boolean get() = auth0Domain != null && auth0Audience != null
 
@@ -49,6 +52,8 @@ data class AppConfig(
             smtpStartTls = env("SMTP_STARTTLS", "false").toBoolean(),
             smtpFrom = env("SMTP_FROM", "OpsInbox <notifiche@opsinbox.local>"),
             appUrl = env("APP_URL", "http://localhost:3000"),
+            openWaApiUrl = env("OPENWA_API_URL", "http://localhost:8002"),
+            openWaApiKey = System.getenv("OPENWA_API_KEY")?.takeIf { it.isNotBlank() },
         )
 
         private fun env(name: String, default: String): String =

@@ -126,6 +126,7 @@ class EmailPipeline(
                 "email".takeIf { companyRow[Companies.notificationEmail] != null },
                 "slack".takeIf { companyRow[Companies.slackWebhookUrl] != null },
                 "teams".takeIf { companyRow[Companies.teamsWebhookUrl] != null },
+                "whatsapp".takeIf { companyRow[Companies.whatsappNumber] != null },
             ).ifEmpty { listOf("log") }
 
             analysis.tasks.forEach { aiTask ->

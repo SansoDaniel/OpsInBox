@@ -76,6 +76,7 @@ $env:OPENAI_API_KEY = "sk-..."   # opzionale: $env:OPENAI_MODEL (default gpt-4o)
 | `SMTP_USER` / `SMTP_PASSWORD` / `SMTP_STARTTLS` | *(vuoti in dev; da impostare col provider reale)* |
 | `SMTP_FROM` | `OpsInbox <notifiche@opsinbox.local>` |
 | `APP_URL` | `http://localhost:3000` (link nelle notifiche) |
+| `OPENWA_API_URL` / `OPENWA_API_KEY` | `http://localhost:8002` / *(vuota)* — WhatsApp via open-wa |
 
 ## API principali
 
@@ -148,12 +149,31 @@ protetto dal suo token dedicato.
 
 Quando l'AI crea un'attività, parte una notifica per ogni canale configurato in
 **Impostazioni** (per azienda): **email** (SMTP), **Slack** e **Teams** (incoming
-webhook, payload `{"text": ...}`). Senza canali configurati resta il fallback `log`.
-Consegna asincrona via coda job (retry con backoff); se il canale non è più
-configurato al momento dell'invio la notifica va in `failed` senza retry.
+webhook, payload `{"text": ...}`), **WhatsApp** (open-wa). Senza canali configurati
+resta il fallback `log`. Consegna asincrona via coda job (retry con backoff); se il
+canale non è più configurato al momento dell'invio la notifica va in `failed` senza retry.
 
 In dev le email si vedono in **Mailpit**: <http://localhost:8025> (parte con
 `docker compose up -d`). In produzione basterà puntare `SMTP_*` a Postmark/SES.
+
+### WhatsApp (open-wa)
+
+Canale basato su [open-wa/wa-automate](https://github.com/open-wa/wa-automate-nodejs)
+(EasyAPI REST, endpoint `POST /sendText`):
+
+```powershell
+docker compose --profile whatsapp up -d   # avvia il servizio open-wa su :8002
+docker compose logs -f openwa             # scansiona il QR con WhatsApp > Dispositivi collegati
+```
+
+Poi imposta il numero del titolare (solo cifre, con prefisso: `393331234567`)
+in **Impostazioni**. Config backend: `OPENWA_API_URL` (default `http://localhost:8002`),
+`OPENWA_API_KEY` opzionale (se avvii open-wa con `--key`).
+
+> ⚠️ open-wa automatizza WhatsApp Web in modo **non ufficiale** (contro i ToS
+> WhatsApp, rischio ban del numero): va bene per MVP/demo con un numero dedicato.
+> Per la produzione il piano è la **WhatsApp Business Cloud API** (Meta): stesso
+> canale, basta sostituire il sender in `NotificationService`.
 
 ## Scelte di design da conoscere
 

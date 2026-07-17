@@ -68,6 +68,13 @@ Flutter resta per il futuro mobile). Package Kotlin: `com.opsinbox`.
   catturata da **Mailpit** (in docker-compose, UI :8025, SMTP :1025) e webhook Slack
   catturato da server locale. Config mancante al momento dell'invio → `failed`
   senza retry; invio fallito → retry del job con backoff
+- ✅ Canale WhatsApp via open-wa EasyAPI (`POST /sendText`, chat id `<cifre>@c.us`):
+  colonna `companies.whatsapp_number` (V4), campo in Impostazioni, env
+  `OPENWA_API_URL`/`OPENWA_API_KEY`, servizio Docker con profilo opzionale
+  `--profile whatsapp` (QR nei log, sessione in volume). **Non ufficiale** (ToS):
+  per produzione previsto swap del sender verso WhatsApp Business Cloud API.
+  Verificato col finto endpoint locale; test con WhatsApp vero richiede scansione
+  QR da parte di Daniel
 - ✅ Dettaglio email nella UI: pagina `/emails/[id]` (card documenti con confidenza,
   attività con approvazione inline, allegati con download, testo originale
   ripiegabile); card della lista email cliccabili; "Vedi email di origine" dai task.
