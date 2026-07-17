@@ -1,0 +1,28 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: opsinbox-postgres
+    environment:
+      POSTGRES_DB: opsinbox
+      POSTGRES_USER: opsinbox
+      POSTGRES_PASSWORD: opsinbox
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opsinbox"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # SMTP di sviluppo: cattura le email di notifica (UI su http://localhost:8025)
+  mailpit:
+    image: axllent/mailpit
+    container_name: opsinbox-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  pgdata:

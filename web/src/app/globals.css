@@ -1,0 +1,313 @@
+@import "tailwindcss";
+
+:root {
+  --background: #fafafa;
+  --foreground: #18181b;
+
+  /* Curve di easing (le built-in CSS sono troppo deboli) */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+
+  /* Superfici e profondità */
+  --surface: #ffffff;
+  --surface-ring: rgba(9, 9, 11, 0.06);
+  --surface-highlight: rgba(255, 255, 255, 0.75);
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 32px -16px rgba(16, 24, 40, 0.12);
+  --shadow-card-hover: 0 2px 4px rgba(16, 24, 40, 0.06), 0 20px 44px -16px rgba(16, 24, 40, 0.2);
+  --header-bg: rgba(250, 250, 250, 0.72);
+  --nav-pill: rgba(9, 9, 11, 0.05);
+  --hover-tint: rgba(9, 9, 11, 0.04);
+
+  /* Bagliori ambientali dello sfondo */
+  --glow-a: rgba(99, 102, 241, 0.1);
+  --glow-b: rgba(14, 165, 233, 0.07);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #09090b;
+    --foreground: #f4f4f5;
+    --surface: rgba(24, 24, 27, 0.72);
+    --surface-ring: rgba(255, 255, 255, 0.07);
+    --surface-highlight: rgba(255, 255, 255, 0.06);
+    --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 40px -20px rgba(0, 0, 0, 0.55);
+    --shadow-card-hover: 0 2px 4px rgba(0, 0, 0, 0.4), 0 24px 48px -20px rgba(0, 0, 0, 0.7);
+    --header-bg: rgba(9, 9, 11, 0.65);
+    --nav-pill: rgba(255, 255, 255, 0.08);
+    --hover-tint: rgba(255, 255, 255, 0.05);
+    --glow-a: rgba(99, 102, 241, 0.16);
+    --glow-b: rgba(56, 189, 248, 0.08);
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Bagliori ambientali su layer fisso separato (compositor-friendly,
+   niente repaint allo scroll come con background-attachment: fixed) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(1100px 520px at 12% -8%, var(--glow-a), transparent 60%),
+    radial-gradient(900px 480px at 108% 12%, var(--glow-b), transparent 55%);
+}
+
+/* Tracking ottico: i titoli grandi vogliono tracking negativo */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+}
+
+/* ---------- Superfici ---------- */
+/* Nel layer components: le utility Tailwind possono sovrascrivere queste classi */
+
+@layer components {
+
+.card {
+  position: relative;
+  border-radius: 1rem;
+  background: var(--surface);
+  box-shadow:
+    inset 0 1px 0 var(--surface-highlight),
+    0 0 0 1px var(--surface-ring),
+    var(--shadow-card);
+}
+
+.card-interactive {
+  transition:
+    transform 200ms var(--ease-out),
+    box-shadow 200ms var(--ease-out);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .card-interactive:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      inset 0 1px 0 var(--surface-highlight),
+      0 0 0 1px var(--surface-ring),
+      var(--shadow-card-hover);
+  }
+}
+
+.header-material {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--header-bg);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+  box-shadow: 0 1px 0 var(--surface-ring);
+}
+
+/* ---------- Navigazione ---------- */
+
+.nav-scroll {
+  scrollbar-width: none;
+}
+
+.nav-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-link {
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.6rem;
+  color: rgb(113 113 122);
+  transition:
+    color 160ms var(--ease-out),
+    background-color 160ms var(--ease-out);
+}
+
+.nav-link:hover {
+  color: var(--foreground);
+}
+
+.nav-link-active {
+  color: var(--foreground);
+  background: var(--nav-pill);
+}
+
+.brand-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 9999px;
+  background: linear-gradient(135deg, #818cf8, #4f46e5);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.65);
+}
+
+/* ---------- Bottoni ---------- */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  user-select: none;
+  transition:
+    transform 160ms var(--ease-out),
+    box-shadow 160ms var(--ease-out),
+    background-color 160ms var(--ease-out),
+    filter 160ms var(--ease-out),
+    opacity 160ms var(--ease-out);
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.btn-primary {
+  color: #fff;
+  background: linear-gradient(to bottom, #6366f1, #4f46e5);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 1px 2px rgba(79, 70, 229, 0.35),
+    0 8px 20px -8px rgba(79, 70, 229, 0.55);
+}
+
+.btn-approve {
+  color: #fff;
+  background: linear-gradient(to bottom, #10b981, #059669);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 1px 2px rgba(5, 150, 105, 0.35),
+    0 8px 20px -8px rgba(5, 150, 105, 0.55);
+}
+
+.btn-ghost {
+  background: var(--surface);
+  box-shadow:
+    0 0 0 1px var(--surface-ring),
+    0 1px 2px rgba(16, 24, 40, 0.04);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .btn-primary:hover,
+  .btn-approve:hover {
+    filter: brightness(1.06);
+  }
+  .btn-ghost:hover {
+    background-color: var(--hover-tint);
+  }
+}
+
+/* ---------- Campi ---------- */
+
+.field {
+  width: 100%;
+  border-radius: 0.75rem;
+  background: var(--surface);
+  padding: 0.55rem 0.8rem;
+  font-size: 0.875rem;
+  box-shadow:
+    0 0 0 1px var(--surface-ring),
+    0 1px 2px rgba(16, 24, 40, 0.04);
+  transition: box-shadow 160ms var(--ease-out);
+}
+
+.field:focus {
+  outline: none;
+  box-shadow:
+    0 0 0 1px #6366f1,
+    0 0 0 4px rgba(99, 102, 241, 0.18);
+}
+
+.field::placeholder {
+  color: rgb(161 161 170);
+}
+
+/* ---------- Tipografia dei numeri ---------- */
+
+.stat-value {
+  font-size: clamp(1.9rem, 3vw, 2.4rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------- Motion ---------- */
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.page-enter {
+  animation: fade-up 300ms var(--ease-out);
+}
+
+/* Stagger: cascata all'ingresso delle liste (solo al mount, decorativa) */
+.stagger > * {
+  opacity: 0;
+  animation: fade-up 360ms var(--ease-out) forwards;
+}
+
+.stagger > *:nth-child(1) { animation-delay: 0ms; }
+.stagger > *:nth-child(2) { animation-delay: 40ms; }
+.stagger > *:nth-child(3) { animation-delay: 80ms; }
+.stagger > *:nth-child(4) { animation-delay: 120ms; }
+.stagger > *:nth-child(5) { animation-delay: 160ms; }
+.stagger > *:nth-child(6) { animation-delay: 200ms; }
+.stagger > *:nth-child(7) { animation-delay: 240ms; }
+.stagger > *:nth-child(8) { animation-delay: 280ms; }
+.stagger > *:nth-child(n + 9) { animation-delay: 320ms; }
+
+/* ---------- Accessibilità ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .page-enter,
+  .stagger > * {
+    animation: none;
+    opacity: 1;
+  }
+  .btn,
+  .card-interactive {
+    transition: none;
+  }
+  .btn:active {
+    transform: none;
+  }
+  .card-interactive:hover {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .header-material {
+    background: var(--background);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+} /* fine @layer components */
