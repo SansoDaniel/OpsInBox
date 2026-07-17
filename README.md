@@ -165,13 +165,3 @@ In dev le email si vedono in **Mailpit**: <http://localhost:8025> (parte con
 - **`confidence` su ogni estrazione**: sotto soglia si potrà forzare la revisione
   manuale (non ancora attivo).
 - **Prompt e schema JSON**: `backend/src/main/kotlin/com/opsinbox/pipeline/Prompts.kt`.
-
-## Prossimi passi (roadmap MVP)
-
-1. ~~Scheletro end-to-end~~ ✅
-2. ~~Provider email reale (Postmark inbound) + protezione webhook~~ ✅
-3. ~~Auth0 + onboarding azienda (indirizzo di inoltro dedicato)~~ ✅
-4. ~~Ricerca in linguaggio naturale (LLM → filtro strutturato)~~ ✅
-5. ~~Notifiche email/Slack/Teams~~ ✅
-6. ~~Dettaglio email nella UI (documenti estratti, allegati, task collegati)~~ ✅
-7. Storage S3, deploy, GDPR (DPA, data residency EU)
