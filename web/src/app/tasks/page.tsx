@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api, PRIORITY_LABELS, type Task } from "@/lib/api";
+import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 
 const FILTERS = [
   { value: "pending_approval", label: "In attesa" },
@@ -57,11 +58,12 @@ export default function TasksPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <h1 className="text-2xl font-semibold">Attività</h1>
-        <div className="card flex gap-1 rounded-xl p-1">
+        <div className="card flex gap-1 rounded-xl p-1" role="group" aria-label="Filtra attività">
           {FILTERS.map((f) => (
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
+              aria-pressed={filter === f.value}
               className={`btn rounded-lg px-3 py-1 text-sm ${
                 filter === f.value
                   ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900 shadow-sm"
@@ -74,12 +76,13 @@ export default function TasksPage() {
         </div>
       </div>
 
-      {error && <div className="text-sm text-amber-600">Backend non raggiungibile.</div>}
+      {error && <ErrorState />}
+      {!error && !tasks && <LoadingState />}
       {tasks && tasks.length === 0 && (
-        <div className="card rounded-2xl border-2 border-dashed border-transparent p-12 text-center text-sm text-zinc-500">
+        <EmptyState>
           Nessuna attività qui. Quando arriva un&apos;email, l&apos;AI proporrà le azioni da
           approvare con un click.
-        </div>
+        </EmptyState>
       )}
 
       <ul key={filter} className="stagger space-y-3">

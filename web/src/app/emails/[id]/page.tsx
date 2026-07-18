@@ -9,6 +9,7 @@ import {
   PRIORITY_LABELS,
   type EmailDetail,
 } from "@/lib/api";
+import { LoadingState } from "@/components/states";
 
 const STATUS_LABELS: Record<string, string> = {
   received: "Ricevuta",
@@ -93,7 +94,7 @@ export default function EmailDetailPage() {
     );
   }
 
-  if (!detail) return <div className="text-sm text-zinc-500">Caricamento…</div>;
+  if (!detail) return <LoadingState />;
 
   const { email } = detail;
 
@@ -250,6 +251,7 @@ export default function EmailDetailPage() {
                 <button
                   disabled={busy === att.id}
                   onClick={() => download(att.id, att.filename)}
+                  aria-label={`Scarica ${att.filename}`}
                   className="btn btn-ghost px-3.5 py-1.5 shrink-0"
                 >
                   Scarica

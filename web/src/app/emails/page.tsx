@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { api, CATEGORY_LABELS, type Email } from "@/lib/api";
+import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 
 const STATUS_LABELS: Record<string, string> = {
   received: "Ricevuta",
@@ -35,11 +36,12 @@ export default function EmailsPage() {
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Email</h1>
 
-      {error && <div className="text-sm text-amber-600">Backend non raggiungibile.</div>}
+      {error && <ErrorState />}
+      {!error && !emails && <LoadingState />}
       {emails && emails.length === 0 && (
-        <div className="card rounded-2xl p-12 text-center text-sm text-zinc-500">
+        <EmptyState>
           Nessuna email ancora. Prova lo script <code>scripts/send-test-email.ps1</code>.
-        </div>
+        </EmptyState>
       )}
 
       <ul className="stagger space-y-3">

@@ -8,6 +8,7 @@ import {
   type SearchFilter,
   type SearchResponse,
 } from "@/lib/api";
+import { EmptyState, ErrorState } from "@/components/states";
 
 const SUGGESTIONS = [
   "Fatture non pagate",
@@ -80,6 +81,7 @@ export default function SearchPage() {
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
+          aria-label="Ricerca in linguaggio naturale"
           placeholder='Es. "fatture non pagate", "preventivi sopra 5000"'
           className="field flex-1"
         />
@@ -100,7 +102,7 @@ export default function SearchPage() {
         ))}
       </div>
 
-      {error && <div className="text-sm text-amber-600">Errore nella ricerca. Backend raggiungibile?</div>}
+      {error && <ErrorState message="Errore nella ricerca. Backend raggiungibile?" />}
 
       {result && (
         <div className="space-y-4">
@@ -117,11 +119,7 @@ export default function SearchPage() {
             <span className="text-zinc-400 ml-auto">{total} risultati</span>
           </div>
 
-          {total === 0 && (
-            <div className="card rounded-2xl p-10 text-center text-sm text-zinc-500">
-              Nessun risultato per questa ricerca.
-            </div>
-          )}
+          {total === 0 && <EmptyState>Nessun risultato per questa ricerca.</EmptyState>}
 
           {result.documents.length > 0 && (
             <div className="card overflow-hidden">

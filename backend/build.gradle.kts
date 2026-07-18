@@ -1,3 +1,5 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+
 plugins {
     kotlin("jvm") version "2.1.20"
     kotlin("plugin.serialization") version "2.1.20"
@@ -25,6 +27,8 @@ dependencies {
     implementation("io.ktor:ktor-server-cors")
     implementation("io.ktor:ktor-server-status-pages")
     implementation("io.ktor:ktor-server-call-logging")
+    implementation("io.ktor:ktor-server-rate-limit")
+    implementation("io.ktor:ktor-server-default-headers")
     implementation("io.ktor:ktor-server-auth")
     implementation("io.ktor:ktor-server-auth-jwt")
 
@@ -57,4 +61,13 @@ dependencies {
 
 kotlin {
     jvmToolchain(21)
+}
+
+// Flyway 10 usa il ServiceLoader (META-INF/services) per registrare scanner e database.
+// Nel fat-jar (shadowJar) questi file si sovrascriverebbero tra flyway-core e
+// flyway-database-postgresql, rompendo la scansione delle migrazioni (le risorse
+// "non seguono la convenzione dei nomi" -> nessuna migrazione applicata). mergeServiceFiles()
+// li unisce così le migrazioni vengono trovate anche eseguendo il jar in produzione.
+tasks.withType<ShadowJar> {
+    mergeServiceFiles()
 }

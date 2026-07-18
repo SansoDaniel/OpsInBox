@@ -27,16 +27,23 @@ export function Header() {
           <span className="brand-dot" aria-hidden />
           OpsInbox
         </Link>
-        <nav className="nav-scroll flex gap-1 text-sm flex-1 overflow-x-auto">
-          {NAV.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={`nav-link whitespace-nowrap ${isActive(item.href) ? "nav-link-active" : ""}`}
-            >
-              {item.label}
-            </Link>
-          ))}
+        <nav
+          aria-label="Navigazione principale"
+          className="nav-scroll flex gap-1 text-sm flex-1 overflow-x-auto"
+        >
+          {NAV.map((item) => {
+            const active = isActive(item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? "page" : undefined}
+                className={`nav-link whitespace-nowrap ${active ? "nav-link-active" : ""}`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
         </nav>
         <UserArea />
       </div>

@@ -114,6 +114,14 @@ cd web; npm run dev                           # UI su :3000
 Variabili d'ambiente: tabella completa nel README (`DATABASE_URL`, `OPENAI_API_KEY`,
 `OPENAI_MODEL`, `INBOUND_WEBHOOK_TOKEN`, `AUTH0_*`, `INBOUND_DOMAIN`, `STORAGE_DIR`).
 
+**Hardening ciclo 1 (backend)**: introdotto `APP_ENV` (`development` default | `production`).
+In `development` tutto resta config-zero come sopra. In `production` il boot è **fail-closed**:
+pretende `AUTH0_DOMAIN`+`AUTH0_AUDIENCE` e `INBOUND_WEBHOOK_TOKEN` (altrimenti exit 1). Nuovi env:
+`APP_ENV`, `CORS_ALLOWED_ORIGINS` (obbligatorio in prod: origini del frontend). Il seed dev
+(`V2__dev_seed.sql`) è ora in `db/migration-dev/`, caricato **solo** in development. Errori 500
+generici + `correlationId` nei log (no info disclosure). Rate limit sul webhook (60/min/IP → 429).
+Dettagli e note per il frontend: `docs/hardening-cycle-1.md` (report Agente B).
+
 ## Cosa manca (in ordine consigliato)
 
 1. **Prova con AI reale**: `OPENAI_API_KEY` + 2-3 PDF di fatture vere — la validazione

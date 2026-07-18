@@ -9,10 +9,13 @@ import com.opsinbox.storage.StorageService
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
+import io.ktor.server.plugins.ratelimit.rateLimit
+import io.ktor.server.request.contentLength
 import io.ktor.server.request.receive
 import io.ktor.server.response.respond
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.post
+import io.ktor.server.plugins.ratelimit.RateLimitName
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
@@ -29,8 +32,17 @@ import java.util.UUID
 
 private val log = LoggerFactory.getLogger("com.opsinbox.routes.WebhookRoutes")
 
+/** Nome del rate limiter applicato all'endpoint pubblico del webhook (vedi Application.kt). */
+const val WEBHOOK_RATE_LIMIT = "webhook"
+
 /** Limite dimensione singolo allegato (Postmark accetta fino a 35MB totali). */
 private const val MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024
+
+/**
+ * S9 — limite dimensione del body della richiesta webhook. Postmark inbound può portare
+ * fino a ~35MB di allegati totali (base64 → ~48MB): teniamo un margine ragionevole.
+ */
+private const val MAX_WEBHOOK_BODY_BYTES = 50L * 1024 * 1024
 
 @Serializable
 data class PostmarkAddress(
@@ -94,9 +106,18 @@ private fun parseEmailDate(raw: String?): OffsetDateTime =
     } ?: OffsetDateTime.now()
 
 fun Route.webhookRoutes(config: AppConfig, storage: StorageService) {
+    rateLimit(RateLimitName(WEBHOOK_RATE_LIMIT)) {
     post("/webhooks/inbound-email") {
         if (!call.isWebhookAuthorized(config)) {
             call.respond(HttpStatusCode.Unauthorized, mapOf("error" to "token webhook mancante o errato"))
+            return@post
+        }
+
+        // S9 — rifiuta i body sovradimensionati prima di deserializzarli in memoria.
+        val declaredLength = call.request.contentLength()
+        if (declaredLength != null && declaredLength > MAX_WEBHOOK_BODY_BYTES) {
+            log.warn("Webhook rifiutato: body {} byte oltre il limite di {}", declaredLength, MAX_WEBHOOK_BODY_BYTES)
+            call.respond(HttpStatusCode.PayloadTooLarge, mapOf("error" to "richiesta troppo grande"))
             return@post
         }
 
@@ -111,12 +132,22 @@ fun Route.webhookRoutes(config: AppConfig, storage: StorageService) {
             inbound.to?.let { add(it) }
         }.map { it.lowercase().trim() }.distinct()
 
-        val companyId = transaction {
+        val resolvedCompanyId = transaction {
             candidates.firstNotNullOfOrNull { address ->
                 Companies.selectAll()
                     .where { Companies.inboundAddress eq address }
                     .singleOrNull()?.get(Companies.id)?.value
-            } ?: UUID.fromString(config.devCompanyId)
+            }
+        }
+        // S8 — in produzione niente fallback sulla company seed: un'email a un indirizzo
+        // sconosciuto NON deve finire in un tenant arbitrario. In dev il fallback resta
+        // (config-zero: send-test-email.ps1 non conosce l'indirizzo generato).
+        val companyId = resolvedCompanyId
+            ?: if (config.isProduction) null else UUID.fromString(config.devCompanyId)
+        if (companyId == null) {
+            log.warn("Webhook: nessuna company per gli indirizzi {} (email scartata)", candidates)
+            call.respond(HttpStatusCode.NotFound, mapOf("error" to "indirizzo di inoltro sconosciuto"))
+            return@post
         }
 
         val emailId = UUID.randomUUID()
@@ -167,5 +198,6 @@ fun Route.webhookRoutes(config: AppConfig, storage: StorageService) {
 
         JobQueue.enqueue("process_email", buildJsonObject { put("emailId", emailId.toString()) })
         call.respond(HttpStatusCode.OK, mapOf("status" to "queued", "emailId" to emailId.toString()))
+    }
     }
 }

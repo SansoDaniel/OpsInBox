@@ -16,17 +16,21 @@ fun ApplicationCall.auth0Sub(): String? = principal<JWTPrincipal>()?.payload?.su
 
 /**
  * Company dell'utente corrente:
- * - auth attiva: lookup per auth0_sub (null se l'utente non ha ancora fatto onboarding);
+ * - auth attiva: lookup per auth0_sub (null se l'utente non ha ancora fatto onboarding).
+ *   L'header X-Company-Id viene IGNORATO (difesa in profondità: nessuna scelta di tenant
+ *   controllabile dal client quando l'identità è verificata via JWT);
  * - auth disattivata (dev): header X-Company-Id oppure la company seed.
  */
 fun ApplicationCall.resolveCompanyId(config: AppConfig): UUID? {
-    val sub = auth0Sub()
-    if (sub != null) {
+    // S8 — quando l'auth è attiva la company deriva SOLO dall'identità JWT.
+    if (config.authEnabled) {
+        val sub = auth0Sub() ?: return null
         return transaction {
             Users.selectAll().where { Users.auth0Sub eq sub }
                 .singleOrNull()?.get(Users.companyId)?.value
         }
     }
+    // Modalità dev (nessun JWT): X-Company-Id opzionale, altrimenti company seed.
     return request.headers["X-Company-Id"]?.let { runCatching { UUID.fromString(it) }.getOrNull() }
         ?: UUID.fromString(config.devCompanyId)
 }

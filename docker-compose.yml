@@ -1,11 +1,14 @@
+# NB: questo compose è SOLO per lo sviluppo locale. La produzione usa un Postgres
+# gestito (credenziali via secret manager), non questo file. La password qui ha un
+# default dev ma è sovrascrivibile via env (POSTGRES_PASSWORD, es. in un .env non versionato).
 services:
   postgres:
     image: postgres:16-alpine
     container_name: opsinbox-postgres
     environment:
-      POSTGRES_DB: opsinbox
-      POSTGRES_USER: opsinbox
-      POSTGRES_PASSWORD: opsinbox
+      POSTGRES_DB: ${POSTGRES_DB:-opsinbox}
+      POSTGRES_USER: ${POSTGRES_USER:-opsinbox}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-opsinbox}
     ports:
       - "5432:5432"
     volumes:

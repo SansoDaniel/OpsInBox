@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import { LoadingState } from "@/components/states";
 
 export default function SettingsPage() {
   const [inboundAddress, setInboundAddress] = useState<string | null>(null);
@@ -12,7 +13,8 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState(false); // errore di salvataggio
+  const [loadError, setLoadError] = useState(false); // errore del caricamento iniziale
 
   useEffect(() => {
     api
@@ -23,9 +25,9 @@ export default function SettingsPage() {
         setSlackWebhookUrl(s.slackWebhookUrl ?? "");
         setTeamsWebhookUrl(s.teamsWebhookUrl ?? "");
         setWhatsappNumber(s.whatsappNumber ?? "");
-        setError(false);
+        setLoadError(false);
       })
-      .catch(() => setError(true))
+      .catch(() => setLoadError(true))
       .finally(() => setLoading(false));
   }, []);
 
@@ -50,7 +52,7 @@ export default function SettingsPage() {
     }
   }
 
-  if (loading) return <div className="text-sm text-zinc-500">Caricamento…</div>;
+  if (loading) return <LoadingState />;
 
   const inputClass = "field";
 
@@ -63,6 +65,12 @@ export default function SettingsPage() {
           sui canali configurati.
         </p>
       </div>
+
+      {loadError && (
+        <div className="text-sm text-amber-600" role="alert">
+          Impossibile caricare le impostazioni. Backend raggiungibile?
+        </div>
+      )}
 
       {inboundAddress && (
         <div className="card p-4 space-y-1.5">

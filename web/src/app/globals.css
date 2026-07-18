@@ -142,6 +142,36 @@ h3 {
   background: var(--nav-pill);
 }
 
+.nav-link:focus-visible {
+  outline: none;
+  color: var(--foreground);
+  box-shadow: 0 0 0 2px #6366f1;
+}
+
+/* Link "salta al contenuto": nascosto finché non riceve focus da tastiera (a11y). */
+.skip-link {
+  position: fixed;
+  top: 0.5rem;
+  left: 0.5rem;
+  z-index: 60;
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.6rem;
+  background: var(--surface);
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 500;
+  box-shadow:
+    0 0 0 1px var(--surface-ring),
+    var(--shadow-card);
+  transform: translateY(-150%);
+  transition: transform 160ms var(--ease-out);
+}
+
+.skip-link:focus-visible {
+  outline: none;
+  transform: translateY(0);
+}
+
 .brand-dot {
   width: 0.55rem;
   height: 0.55rem;
@@ -177,6 +207,15 @@ h3 {
 .btn:disabled {
   opacity: 0.5;
   pointer-events: none;
+}
+
+/* Focus da tastiera visibile su tutti i bottoni (a11y). Solo :focus-visible per
+   non mostrare l'anello sul click del mouse. */
+.btn:focus-visible {
+  outline: none;
+  box-shadow:
+    0 0 0 2px var(--background),
+    0 0 0 4px #6366f1;
 }
 
 .btn-primary {
@@ -291,7 +330,8 @@ h3 {
     opacity: 1;
   }
   .btn,
-  .card-interactive {
+  .card-interactive,
+  .skip-link {
     transition: none;
   }
   .btn:active {

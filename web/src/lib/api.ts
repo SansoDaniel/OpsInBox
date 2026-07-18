@@ -1,4 +1,22 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+// Origine dell'API. In sviluppo il default a localhost tiene la DX a configurazione zero;
+// in produzione un fallback silenzioso a localhost è un bug (l'app chiamerebbe la macchina
+// dell'utente). Se manca in prod, lo segnaliamo esplicitamente e usiamo un placeholder
+// palesemente rotto così l'errore emerge subito invece di fallire in modo silenzioso.
+function resolveApiUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL;
+  if (configured) return configured;
+  if (process.env.NODE_ENV === "production") {
+    // NEXT_PUBLIC_* è inlined a build-time: questo warning compare nei log di build/runtime.
+    console.error(
+      "[OpsInbox] NEXT_PUBLIC_API_URL non impostato in produzione: le chiamate API falliranno. " +
+        "Configura l'URL del backend prima del deploy.",
+    );
+    return "about:blank";
+  }
+  return "http://localhost:8080";
+}
+
+const API_URL = resolveApiUrl();
 
 // Impostato dal Gate di autenticazione quando Auth0 è attivo; null in modalità dev.
 let tokenGetter: (() => Promise<string | null>) | null = null;
@@ -37,6 +55,37 @@ export type Email = {
   summary: string | null;
 };
 
+/**
+ * Errore di una chiamata API. Espone lo status HTTP e, quando presente nel body,
+ * il messaggio del backend e il `correlationId` (nuovo formato 500 del backend:
+ * `{"error":"Errore interno del server","correlationId":"<uuid>"}`, vedi
+ * docs/hardening-cycle-1.md). Gli altri errori restano `{"error":"..."}`.
+ */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    message: string,
+    readonly correlationId?: string,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+/** Estrae `{ error, correlationId }` dal body; tollera risposte non-JSON o vuote. */
+async function parseError(res: Response): Promise<ApiError> {
+  try {
+    const body = (await res.json()) as { error?: string; correlationId?: string };
+    return new ApiError(
+      res.status,
+      body?.error ?? `Errore API (${res.status})`,
+      body?.correlationId,
+    );
+  } catch {
+    return new ApiError(res.status, `Errore API (${res.status})`);
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -47,7 +96,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     if (token) headers.Authorization = `Bearer ${token}`;
   }
   const res = await fetch(`${API_URL}${path}`, { ...init, headers, cache: "no-store" });
-  if (!res.ok) throw new Error(`API ${res.status}`);
+  if (!res.ok) throw await parseError(res);
   return res.json() as Promise<T>;
 }
 
@@ -135,7 +184,7 @@ async function requestBlob(path: string): Promise<Blob> {
     if (token) headers.Authorization = `Bearer ${token}`;
   }
   const res = await fetch(`${API_URL}${path}`, { headers, cache: "no-store" });
-  if (!res.ok) throw new Error(`API ${res.status}`);
+  if (!res.ok) throw await parseError(res);
   return res.blob();
 }
 

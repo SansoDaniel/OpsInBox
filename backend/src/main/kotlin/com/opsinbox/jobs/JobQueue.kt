@@ -4,6 +4,7 @@ import com.opsinbox.db.Jobs
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
+import org.jetbrains.exposed.sql.TextColumnType
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.statements.StatementType
 import org.jetbrains.exposed.sql.transactions.transaction
@@ -43,7 +44,7 @@ object JobQueue {
     fun claimNext(workerId: String): ClaimedJob? = transaction {
         val sql = """
             UPDATE jobs
-            SET status = 'running', locked_at = now(), locked_by = '$workerId', attempts = attempts + 1
+            SET status = 'running', locked_at = now(), locked_by = ?, attempts = attempts + 1
             WHERE id = (
                 SELECT id FROM jobs
                 WHERE status = 'queued' AND run_at <= now()
@@ -53,8 +54,13 @@ object JobQueue {
             )
             RETURNING id, type, payload, attempts, max_attempts
         """.trimIndent()
+        // workerId passato come parametro tipizzato (niente interpolazione in SQL).
         // explicitStatementType SELECT: la query inizia con UPDATE ma restituisce righe (RETURNING)
-        exec(sql, explicitStatementType = StatementType.SELECT) { rs ->
+        exec(
+            sql,
+            args = listOf(TextColumnType() to workerId),
+            explicitStatementType = StatementType.SELECT,
+        ) { rs ->
             if (rs.next()) {
                 ClaimedJob(
                     id = rs.getLong("id"),

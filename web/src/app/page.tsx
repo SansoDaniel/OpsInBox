@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api, CATEGORY_LABELS, type Dashboard } from "@/lib/api";
+import { LoadingState } from "@/components/states";
 
 function MailIcon() {
   return (
@@ -86,15 +87,16 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="card border-amber-300/50 p-5 text-sm">
-        Backend non raggiungibile su <code>{process.env.NEXT_PUBLIC_API_URL}</code>.
+      <div className="card border-amber-300/50 p-5 text-sm" role="alert">
+        Backend non raggiungibile su{" "}
+        <code>{process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080"}</code>.
         Avvia Postgres (<code>docker compose up -d</code>) e il backend (
         <code>cd backend && gradlew.bat run</code>).
       </div>
     );
   }
 
-  if (!data) return <div className="text-sm text-zinc-500">Caricamento…</div>;
+  if (!data) return <LoadingState />;
 
   const categories = Object.entries(data.byCategory).sort((a, b) => b[1] - a[1]);
 

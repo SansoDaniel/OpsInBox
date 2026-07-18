@@ -1,6 +1,7 @@
 package com.opsinbox
 
 import com.opsinbox.config.AppConfig
+import com.opsinbox.config.AppConfig.Companion.validateForBoot
 import com.opsinbox.db.DatabaseFactory
 import com.opsinbox.jobs.JobWorker
 import com.opsinbox.pipeline.AiClient
@@ -9,6 +10,7 @@ import com.opsinbox.pipeline.MockAiClient
 import com.opsinbox.pipeline.OpenAiClient
 import com.auth0.jwk.JwkProviderBuilder
 import com.opsinbox.notify.NotificationService
+import com.opsinbox.routes.WEBHOOK_RATE_LIMIT
 import com.opsinbox.routes.apiRoutes
 import com.opsinbox.routes.onboardingRoutes
 import com.opsinbox.routes.searchRoutes
@@ -29,11 +31,18 @@ import io.ktor.server.netty.Netty
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.server.plugins.cors.routing.CORS
+import io.ktor.server.plugins.defaultheaders.DefaultHeaders
+import io.ktor.server.plugins.origin
+import io.ktor.server.plugins.ratelimit.RateLimit
+import io.ktor.server.plugins.ratelimit.RateLimitName
 import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respond
 import io.ktor.server.routing.get
 import io.ktor.server.routing.routing
+import java.util.UUID
 import java.util.concurrent.TimeUnit
+import kotlin.system.exitProcess
+import kotlin.time.Duration.Companion.minutes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,6 +52,17 @@ import org.slf4j.LoggerFactory
 fun main() {
     val log = LoggerFactory.getLogger("com.opsinbox.Application")
     val config = AppConfig.fromEnv()
+    log.info("Ambiente: {}", config.appEnv)
+
+    // S3 — guard di boot: in produzione (fail-closed) i segreti sono obbligatori.
+    // Se mancano, logga l'errore e termina invece di partire in modalità insicura.
+    val bootErrors = config.validateForBoot()
+    if (bootErrors.isNotEmpty()) {
+        log.error("Boot interrotto: configurazione di sicurezza incompleta per APP_ENV=production.")
+        bootErrors.forEach { log.error("  - {}", it) }
+        log.error("Imposta i segreti richiesti oppure avvia in APP_ENV=development per la modalità demo.")
+        exitProcess(1)
+    }
 
     DatabaseFactory.init(config)
 
@@ -70,14 +90,38 @@ fun main() {
             json(Json { ignoreUnknownKeys = true; encodeDefaults = true; explicitNulls = false })
         }
         install(CallLogging)
+        // S7 (lato backend) — header di sicurezza sulle risposte API. La CSP/HSTS del
+        // sito è responsabilità del frontend/reverse-proxy; qui blindiamo le risposte API.
+        install(DefaultHeaders) {
+            header("X-Content-Type-Options", "nosniff")
+            header("Referrer-Policy", "no-referrer")
+            header("X-Frame-Options", "DENY")
+            if (config.isProduction) {
+                header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+            }
+        }
         install(CORS) {
-            allowHost("localhost:3000")
-            allowHost("127.0.0.1:3000")
+            // S6/S7 — origini configurabili per ambiente. In dev: localhost:3000.
+            config.corsAllowedHosts.forEach { host ->
+                if (config.isProduction) allowHost(host, schemes = listOf("https"))
+                else allowHost(host)
+            }
             allowHeader(HttpHeaders.ContentType)
             allowHeader(HttpHeaders.Authorization)
-            allowHeader("X-Company-Id")
+            // X-Company-Id serve solo al ramo dev (senza JWT non c'è altro modo di scegliere
+            // il tenant). Con auth attiva il server lo ignora comunque: non esporlo in produzione.
+            if (!config.isProduction) allowHeader("X-Company-Id")
+            allowHeader("X-Webhook-Token")
             allowMethod(HttpMethod.Get)
             allowMethod(HttpMethod.Post)
+        }
+        // S5 — rate limiting. Registriamo un limiter dedicato all'endpoint pubblico del webhook,
+        // con chiave sull'IP di origine così un mittente rumoroso non satura il servizio.
+        install(RateLimit) {
+            register(RateLimitName(WEBHOOK_RATE_LIMIT)) {
+                rateLimiter(limit = 60, refillPeriod = 1.minutes)
+                requestKey { call -> call.request.origin.remoteHost }
+            }
         }
         if (config.authEnabled) {
             val jwkProvider = JwkProviderBuilder(config.auth0Domain)
@@ -101,17 +145,24 @@ fun main() {
             }
         }
         install(StatusPages) {
+            // S4 — niente info disclosure: al client va un messaggio generico + id di
+            // correlazione; il dettaglio completo (con lo stesso id) resta nei log server.
             exception<Throwable> { call, cause ->
-                LoggerFactory.getLogger("com.opsinbox.Application").error("Errore non gestito", cause)
+                val correlationId = UUID.randomUUID().toString()
+                LoggerFactory.getLogger("com.opsinbox.Application")
+                    .error("Errore non gestito [correlationId={}]", correlationId, cause)
                 call.respond(
                     HttpStatusCode.InternalServerError,
-                    mapOf("error" to (cause.message ?: "Errore interno")),
+                    mapOf(
+                        "error" to "Errore interno del server",
+                        "correlationId" to correlationId,
+                    ),
                 )
             }
         }
         routing {
             get("/health") { call.respond(mapOf("status" to "ok")) }
-            webhookRoutes(config, storage) // protetto dal token webhook, non da Auth0
+            webhookRoutes(config, storage) // protetto dal token webhook + rate limit, non da Auth0
             if (config.authEnabled) {
                 authenticate("auth0") {
                     apiRoutes(config, storage)
